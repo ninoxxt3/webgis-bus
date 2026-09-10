@@ -1,0 +1,97 @@
+{
+    "audit": {
+        "total_baris_mentah": 634,
+        "total_baris_valid": 634,
+        "jumlah_missing_values": 0,
+        "jumlah_duplikat": 0,
+        "jumlah_koordinat_invalid": 0,
+        "jumlah_timestamp_invalid": 0,
+        "status_integritas": "Sempurna (Clean)"
+    },
+    "agregasi_trip": {
+        "1": {
+            "trip_id": 1,
+            "total_titik": 121,
+            "jam_mulai": "05:22",
+            "jam_selesai": "06:22",
+            "waktu_mulai": "2025-03-03 05:22:00",
+            "waktu_selesai": "2025-03-03 06:22:00",
+            "durasi_menit": 60,
+            "total_jarak_km": 33.8,
+            "kecepatan_rata_kmh": 33.5,
+            "kecepatan_maks_kmh": 44.4,
+            "titik_idle": 0,
+            "koordinat_awal": [
+                -6.121775,
+                106.893649
+            ],
+            "koordinat_akhir": [
+                -6.207677,
+                106.698685
+            ]
+        },
+        "2": {
+            "trip_id": 2,
+            "total_titik": 145,
+            "jam_mulai": "09:44",
+            "jam_selesai": "10:56",
+            "waktu_mulai": "2025-03-03 09:44:00",
+            "waktu_selesai": "2025-03-03 10:56:00",
+            "durasi_menit": 72,
+            "total_jarak_km": 33.76,
+            "kecepatan_rata_kmh": 27.9,
+            "kecepatan_maks_kmh": 34.4,
+            "titik_idle": 0,
+            "koordinat_awal": [
+                -6.206642,
+                106.700015
+            ],
+            "koordinat_akhir": [
+                -6.122917,
+                106.893887
+            ]
+        },
+        "3": {
+            "trip_id": 3,
+            "total_titik": 186,
+            "jam_mulai": "14:55",
+            "jam_selesai": "16:27",
+            "waktu_mulai": "2025-03-03 14:55:00",
+            "waktu_selesai": "2025-03-03 16:27:30",
+            "durasi_menit": 92.5,
+            "total_jarak_km": 33.73,
+            "kecepatan_rata_kmh": 21.8,
+            "kecepatan_maks_kmh": 30.3,
+            "titik_idle": 2,
+            "koordinat_awal": [
+                -6.206448,
+                106.700264
+            ],
+            "koordinat_akhir": [
+                -6.122917,
+                106.893887
+            ]
+        },
+        "4": {
+            "trip_id": 4,
+            "total_titik": 182,
+            "jam_mulai": "18:52",
+            "jam_selesai": "20:22",
+            "waktu_mulai": "2025-03-03 18:52:00",
+            "waktu_selesai": "2025-03-03 20:22:30",
+            "durasi_menit": 90.5,
+            "total_jarak_km": 33.75,
+            "kecepatan_rata_kmh": 22.3,
+            "kecepatan_maks_kmh": 36.4,
+            "titik_idle": 18,
+            "koordinat_awal": [
+                -6.122823,
+                106.89372
+            ],
+            "koordinat_akhir": [
+                -6.207677,
+                106.698685
+            ]
+        }
+    }
+}

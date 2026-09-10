@@ -1,0 +1,19 @@
+{
+  "kode_kendaraan": "K-05",
+  "kendaraan": "Bus kota",
+  "trayek": "Tangerang – Jakarta",
+  "jenis_bbm": "Biosolar",
+  "harga_per_liter": 6800,
+  "efisiensi_acuan": 3.3,
+  "jumlah_hari": 1,
+  "jumlah_trip": 4,
+  "total_km": 135.0,
+  "total_liter": 50.1,
+  "total_biaya": 340740,
+  "liter_idle": 0.4,
+  "liter_boros": 9.2,
+  "biaya_boros": 62472,
+  "catatan": "Data simulasi, bukan rekaman kendaraan sungguhan.",
+  "siang_trip": 4,
+  "siang_km_per_liter": 2.69
+}
