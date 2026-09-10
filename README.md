@@ -215,4 +215,4 @@ Aplikasi dapat dideploy secara cepat ke lingkungan produksi menggunakan:
 - **Satu Armada (K-05)**: Data hanya merefleksikan satu unit kendaraan bus kota (kode armada K-05).
 - **Rentang Waktu Terbatas**: Dataset hanya mencakup 4 trip perjalanan dalam kurun waktu 1 hari operasional (Senin, 03-03-2025).
 - **Bukan Generalisasi**: Hasil analisis efisiensi ini tidak dapat digeneralisasi untuk merepresentasikan seluruh armada bus pada koridor Tangerang – Jakarta.
-- **Kondisi BBM Acuan**: Angka efisiensi acuan (3,3 km/liter) didasarkan pada standar estimasi dataset yang tersedia.
+- **Kondisi BBM Acuan**: Angka efisiensi acuan (3,3 km/liter) didasarkan pada standar estimasi dataset yang tersedia. 
