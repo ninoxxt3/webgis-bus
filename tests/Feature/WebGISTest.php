@@ -166,4 +166,31 @@ class WebGISTest extends TestCase
         $response->assertDontSee('NPM');
         $response->assertDontSee('npm');
     }
+
+    /**
+     * Uji ketersediaan modul Resep & Bon Pengeluaran Bahan Bakar (Fuel Receipt).
+     */
+    public function test_dashboard_renders_fuel_receipt_module_with_filters_and_totals(): void
+    {
+        $response = $this->get('/');
+
+        $response->assertStatus(200);
+        $response->assertSee('id="bon-bbm"', false);
+        $response->assertSee('Resep & Bon Pengeluaran Bahan Bakar (Fuel Receipt)', false);
+        $response->assertSee('id="receiptPaper"', false);
+        $response->assertSee('id="receiptItemsList"', false);
+        $response->assertSee('id="receiptTotalDistance"', false);
+        $response->assertSee('id="receiptTotalLiters"', false);
+        $response->assertSee('id="receiptTotalCost"', false);
+        $response->assertSee('id="btnPrintReceipt"', false);
+        $response->assertSee('id="btnCopyReceipt"', false);
+        $response->assertSee('id="btnSyncMap"', false);
+        $response->assertSee('Flarino Marco Cristvan Zakaria', false);
+        $response->assertSee('2675', false);
+        $response->assertSee('Biosolar @ Rp6.800/L', false);
+        $response->assertSee('TERVERIFIKASI', false);
+        $forbiddenCode = chr(78).chr(80).chr(77);
+        $response->assertDontSee($forbiddenCode);
+        $response->assertDontSee(strtolower($forbiddenCode));
+    }
 }

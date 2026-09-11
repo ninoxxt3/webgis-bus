@@ -93,6 +93,7 @@ function normalizeTripProperties(props) {
 document.addEventListener('DOMContentLoaded', () => {
     initSidebarToggle();
     initFilterButtonsEventDelegation();
+    initReceiptModule();
     initTransitApp();
 });
 
@@ -176,9 +177,13 @@ function updateFilterButtonStyles(selectedTrip) {
     }
 }
 
-function applyTripFilter(trip) {
+function applyTripFilter(trip, syncReceipt = true) {
     currentFilter = trip;
     updateFilterButtonStyles(trip);
+
+    if (syncReceipt && typeof syncReceiptFromMapFilter === 'function') {
+        syncReceiptFromMapFilter(trip);
+    }
 
     if (!map) return;
 
@@ -341,6 +346,10 @@ async function initTransitApp() {
 
             window.transitTripsData = trips;
             renderCharts(trips);
+
+            if (typeof updateReceiptCatalogFromData === 'function') {
+                updateReceiptCatalogFromData(ruteData.features);
+            }
         } catch (err) {
             console.error('Gagal memproses data rute untuk grafik:', err);
         }
@@ -815,4 +824,479 @@ function renderTable(geojsonData) {
 
         tableBody.appendChild(row);
     });
+}
+
+// -----------------------------------------------------------------------------
+// Modul: Resep & Bon Pengeluaran Bahan Bakar (Fuel Receipt)
+// -----------------------------------------------------------------------------
+let receiptTripsCatalog = [
+    {
+        tripId: 1,
+        nama: 'Trip 1',
+        arah: 'Tangerang → Jakarta',
+        jam: '06:15 – 07:45',
+        jarakKm: 33.80,
+        literTotal: 11.34,
+        literJalan: 11.34,
+        literIdle: 0.00,
+        literBoros: 1.10,
+        kmPerLiter: 2.98,
+        biayaRp: 77142,
+        biayaBorosRp: 7480
+    },
+    {
+        tripId: 2,
+        nama: 'Trip 2',
+        arah: 'Jakarta → Tangerang',
+        jam: '09:30 – 11:00',
+        jarakKm: 33.76,
+        literTotal: 12.10,
+        literJalan: 12.10,
+        literIdle: 0.00,
+        literBoros: 1.87,
+        kmPerLiter: 2.79,
+        biayaRp: 82273,
+        biayaBorosRp: 12716
+    },
+    {
+        tripId: 3,
+        nama: 'Trip 3',
+        arah: 'Tangerang → Jakarta',
+        jam: '13:45 – 15:15',
+        jarakKm: 33.73,
+        literTotal: 13.51,
+        literJalan: 13.46,
+        literIdle: 0.04,
+        literBoros: 3.29,
+        kmPerLiter: 2.50,
+        biayaRp: 91841,
+        biayaBorosRp: 22372
+    },
+    {
+        tripId: 4,
+        nama: 'Trip 4',
+        arah: 'Jakarta → Tangerang',
+        jam: '17:00 – 18:30',
+        jarakKm: 33.75,
+        literTotal: 13.16,
+        literJalan: 12.77,
+        literIdle: 0.39,
+        literBoros: 2.93,
+        kmPerLiter: 2.57,
+        biayaRp: 89484,
+        biayaBorosRp: 19924
+    }
+];
+
+let isInternalReceiptSyncing = false;
+
+function initReceiptModule() {
+    const filterButtons = document.querySelectorAll('.receipt-filter-btn');
+    const checkboxes = document.querySelectorAll('.receipt-trip-checkbox');
+    const btnPrint = document.getElementById('btnPrintReceipt');
+    const btnCopy = document.getElementById('btnCopyReceipt');
+    const btnSync = document.getElementById('btnSyncMap');
+
+    // Preset filter buttons (Semua, Trip 1, 2, 3, 4)
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const filterVal = btn.getAttribute('data-filter');
+            filterButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            if (filterVal === 'all') {
+                checkboxes.forEach(cb => { cb.checked = true; });
+            } else {
+                const targetId = parseInt(filterVal, 10);
+                checkboxes.forEach(cb => {
+                    cb.checked = (parseInt(cb.value, 10) === targetId);
+                });
+            }
+
+            syncAndRenderReceipt();
+        });
+    });
+
+    // Checklist kustom trip
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', () => {
+            const checkedBoxes = Array.from(checkboxes).filter(c => c.checked);
+            filterButtons.forEach(b => b.classList.remove('active'));
+
+            if (checkedBoxes.length === 4) {
+                const allBtn = document.querySelector('.receipt-filter-btn[data-filter="all"]');
+                if (allBtn) allBtn.classList.add('active');
+            } else if (checkedBoxes.length === 1) {
+                const singleBtn = document.querySelector(`.receipt-filter-btn[data-filter="${checkedBoxes[0].value}"]`);
+                if (singleBtn) singleBtn.classList.add('active');
+            }
+
+            syncAndRenderReceipt();
+        });
+    });
+
+    // Tombol Cetak / PDF
+    if (btnPrint) {
+        btnPrint.addEventListener('click', () => {
+            window.print();
+        });
+    }
+
+    // Tombol Salin Ringkasan Bon
+    if (btnCopy) {
+        btnCopy.addEventListener('click', () => {
+            copyReceiptAsText(btnCopy);
+        });
+    }
+
+    // Tombol Fokuskan ke Peta
+    if (btnSync) {
+        btnSync.addEventListener('click', () => {
+            syncReceiptWithMap();
+        });
+    }
+
+    // Render inisial bon
+    syncAndRenderReceipt();
+}
+
+function updateReceiptCatalogFromData(features) {
+    if (!features || !Array.isArray(features)) return;
+
+    try {
+        receiptTripsCatalog = features.map(feat => {
+            const p = normalizeTripProperties(feat.properties);
+            return {
+                tripId: p.tripId,
+                nama: `Trip ${p.tripId}`,
+                arah: p.arah,
+                jam: `${p.jamMulai} – ${p.jamSelesai}`,
+                jarakKm: p.jarakKm,
+                literTotal: p.literTotal,
+                literJalan: p.literJalan,
+                literIdle: p.literIdle,
+                literBoros: p.literBoros,
+                kmPerLiter: p.kmPerLiter,
+                biayaRp: p.biayaRp,
+                biayaBorosRp: p.biayaBorosRp
+            };
+        }).sort((a, b) => a.tripId - b.tripId);
+
+        syncAndRenderReceipt();
+    } catch (e) {
+        console.warn('Gagal memperbarui katalog bon dari GeoJSON:', e);
+    }
+}
+
+function getSelectedReceiptTripIds() {
+    const checkboxes = document.querySelectorAll('.receipt-trip-checkbox:checked');
+    return Array.from(checkboxes).map(cb => parseInt(cb.value, 10));
+}
+
+function syncAndRenderReceipt() {
+    const selectedIds = getSelectedReceiptTripIds();
+    renderFuelReceipt(selectedIds);
+}
+
+function syncReceiptFromMapFilter(mapTrip) {
+    if (isInternalReceiptSyncing) return;
+
+    const filterButtons = document.querySelectorAll('.receipt-filter-btn');
+    const checkboxes = document.querySelectorAll('.receipt-trip-checkbox');
+
+    if (mapTrip === 'all') {
+        filterButtons.forEach(b => b.classList.toggle('active', b.getAttribute('data-filter') === 'all'));
+        checkboxes.forEach(cb => { cb.checked = true; });
+    } else {
+        const tripNum = parseInt(mapTrip, 10);
+        filterButtons.forEach(b => b.classList.toggle('active', b.getAttribute('data-filter') === String(tripNum)));
+        checkboxes.forEach(cb => { cb.checked = (parseInt(cb.value, 10) === tripNum); });
+    }
+
+    syncAndRenderReceipt();
+}
+
+function renderFuelReceipt(selectedTripIds) {
+    const itemsContainer = document.getElementById('receiptItemsList');
+    const docNumberEl = document.getElementById('receiptDocNumber');
+    const statusTextEl = document.getElementById('receiptActiveStatus');
+    const totalDistEl = document.getElementById('receiptTotalDistance');
+    const roadFuelEl = document.getElementById('receiptRoadFuel');
+    const idleFuelEl = document.getElementById('receiptIdleFuel');
+    const wastedFuelEl = document.getElementById('receiptWastedFuel');
+    const totalLitersEl = document.getElementById('receiptTotalLiters');
+    const totalCostEl = document.getElementById('receiptTotalCost');
+    const avgEffEl = document.getElementById('receiptAvgEfficiency');
+    const wasteCostEl = document.getElementById('receiptWasteCost');
+    const barcodeTextEl = document.getElementById('receiptBarcodeText');
+
+    if (!itemsContainer) return;
+
+    if (selectedTripIds.length === 0) {
+        itemsContainer.innerHTML = `
+            <div style="padding:18px 12px; text-align:center; color:#f87171; font-size:0.8rem; background:rgba(239,68,68,0.08); border:1px dashed rgba(239,68,68,0.3); border-radius:4px;">
+                ⚠️ Tidak ada trip terpilih.<br><span style="color:#94a3b8; font-size:0.75rem;">Silakan centang minimal 1 trip pada panel kontrol di sebelah kiri untuk menghasilkan bon.</span>
+            </div>
+        `;
+        if (docNumberEl) docNumberEl.textContent = 'BON-K05-20250303-EMPTY';
+        if (statusTextEl) statusTextEl.textContent = '0 Trip Terpilih (Bon Kosong)';
+        if (totalDistEl) totalDistEl.textContent = '0,00 km';
+        if (roadFuelEl) roadFuelEl.textContent = '0,00 L';
+        if (idleFuelEl) idleFuelEl.textContent = '0,00 L';
+        if (wastedFuelEl) wastedFuelEl.textContent = '0,00 L';
+        if (totalLitersEl) totalLitersEl.textContent = '0,00 L';
+        if (totalCostEl) totalCostEl.textContent = 'Rp 0';
+        if (avgEffEl) avgEffEl.textContent = '0,00 km/L';
+        if (wasteCostEl) wasteCostEl.textContent = 'Rp 0 (0,0%)';
+        if (barcodeTextEl) barcodeTextEl.textContent = '*K05-20250303-0*';
+        return;
+    }
+
+    const filtered = receiptTripsCatalog.filter(t => selectedTripIds.includes(t.tripId));
+
+    let itemsHtml = '';
+    let sumJarak = 0;
+    let sumLiter = 0;
+    let sumJalan = 0;
+    let sumIdle = 0;
+    let sumBoros = 0;
+    let sumBiaya = 0;
+    let sumBiayaBoros = 0;
+
+    filtered.forEach(t => {
+        sumJarak += t.jarakKm;
+        sumLiter += t.literTotal;
+        sumJalan += t.literJalan;
+        sumIdle += t.literIdle;
+        sumBoros += t.literBoros;
+        sumBiaya += t.biayaRp;
+        sumBiayaBoros += t.biayaBorosRp;
+
+        const dotColor = tripColorPalette[t.tripId] || '#38bdf8';
+
+        itemsHtml += `
+            <div class="receipt-item-row">
+                <div class="item-left">
+                    <span class="item-name">
+                        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background-color:${dotColor};"></span>
+                        TRIP ${t.tripId} (${t.arah})
+                    </span>
+                    <span class="item-sub">
+                        ${formatDecimal(t.jarakKm, 2)} km @ ${formatDecimal(t.kmPerLiter, 2)} km/L | Idle: ${formatDecimal(t.literIdle, 2)} L
+                    </span>
+                </div>
+                <div class="item-right">
+                    <span class="item-liters">${formatDecimal(t.literTotal, 2)} L</span>
+                    <span class="item-price">${formatRupiah(t.biayaRp)}</span>
+                </div>
+            </div>
+        `;
+    });
+
+    itemsContainer.innerHTML = itemsHtml;
+
+    // Hitung aggregasi
+    const avgEfficiency = sumLiter > 0 ? (sumJarak / sumLiter) : 0;
+    const wastePercent = sumBiaya > 0 ? ((sumBiayaBoros / sumBiaya) * 100) : 0;
+
+    // Format nomor bon unik
+    let docCode = '';
+    if (selectedTripIds.length === 4) {
+        docCode = 'ALL';
+    } else {
+        docCode = 'T' + selectedTripIds.sort((a, b) => a - b).join('-T');
+    }
+    const docNo = `BON-K05-20250303-${docCode}`;
+
+    if (docNumberEl) docNumberEl.textContent = docNo;
+    if (statusTextEl) {
+        statusTextEl.textContent = selectedTripIds.length === 4
+            ? 'Semua Trip (4 Trip Terpilih)'
+            : `${selectedTripIds.length} Trip Terpilih (Trip ${selectedTripIds.join(', ')})`;
+    }
+    if (totalDistEl) totalDistEl.textContent = `${formatDecimal(sumJarak, 2)} km`;
+    if (roadFuelEl) roadFuelEl.textContent = `${formatDecimal(sumJalan, 2)} L`;
+    if (idleFuelEl) idleFuelEl.textContent = `${formatDecimal(sumIdle, 2)} L`;
+    if (wastedFuelEl) wastedFuelEl.textContent = `${formatDecimal(sumBoros, 2)} L`;
+    if (totalLitersEl) totalLitersEl.textContent = `${formatDecimal(sumLiter, 2)} L`;
+    if (totalCostEl) totalCostEl.textContent = formatRupiah(sumBiaya);
+    if (avgEffEl) avgEffEl.textContent = `${formatDecimal(avgEfficiency, 2)} km/L`;
+    if (wasteCostEl) {
+        wasteCostEl.textContent = `${formatRupiah(sumBiayaBoros)} (-${formatDecimal(wastePercent, 1)}%)`;
+    }
+    if (barcodeTextEl) barcodeTextEl.textContent = `*K05-20250303-${Math.round(sumBiaya)}*`;
+}
+
+function copyReceiptAsText(button) {
+    const selectedIds = getSelectedReceiptTripIds();
+    if (selectedIds.length === 0) {
+        alert('Pilih minimal 1 trip untuk menyalin teks bon.');
+        return;
+    }
+    const filtered = receiptTripsCatalog.filter(t => selectedIds.includes(t.tripId));
+
+    let sumJarak = 0, sumLiter = 0, sumIdle = 0, sumBoros = 0, sumBiaya = 0, sumBiayaBoros = 0;
+    const lines = [
+        '========================================',
+        '       TRANSIT GIS OPERATIONS',
+        '      DEPO ARMADA BUS KOTA K-05',
+        '   Koridor: Tangerang - Jakarta (DKI)',
+        '   *** BUKTI PENGELUARAN BAHAN BAKAR ***',
+        '========================================',
+        `No. Bon  : ${document.getElementById('receiptDocNumber')?.textContent || '-'}`,
+        'Tanggal  : Senin, 03-03-2025',
+        'Armada   : Bus Kota (K-05)',
+        'BBM      : Biosolar @ Rp6.800 / Liter',
+        'Acuan    : 3,3 km / Liter',
+        'Petugas  : Flarino Marco Cristvan Zakaria (2675)',
+        '----------------------------------------',
+        'RINCIAN PERJALANAN / TRIP:'
+    ];
+
+    filtered.forEach(t => {
+        sumJarak += t.jarakKm;
+        sumLiter += t.literTotal;
+        sumIdle += t.literIdle;
+        sumBoros += t.literBoros;
+        sumBiaya += t.biayaRp;
+        sumBiayaBoros += t.biayaBorosRp;
+
+        lines.push(`• TRIP ${t.tripId} [${t.arah}]`);
+        lines.push(`  Jarak   : ${formatDecimal(t.jarakKm, 2)} km`);
+        lines.push(`  Konsumsi: ${formatDecimal(t.literTotal, 2)} L (${formatRupiah(t.biayaRp)})`);
+        lines.push(`  Efisiensi: ${formatDecimal(t.kmPerLiter, 2)} km/L | Idle: ${formatDecimal(t.literIdle, 2)} L | Boros: ${formatDecimal(t.literBoros, 2)} L`);
+    });
+
+    const avgEff = sumLiter > 0 ? (sumJarak / sumLiter) : 0;
+    lines.push('----------------------------------------');
+    lines.push(`Total Jarak Tempuh : ${formatDecimal(sumJarak, 2)} km`);
+    lines.push(`BBM Terbuang (Idle): ${formatDecimal(sumIdle, 2)} L`);
+    lines.push(`BBM Boros vs Acuan : ${formatDecimal(sumBoros, 2)} L`);
+    lines.push('========================================');
+    lines.push(`TOTAL LITER BBM    : ${formatDecimal(sumLiter, 2)} LITER`);
+    lines.push(`TOTAL BIAYA BBM    : ${formatRupiah(sumBiaya)}`);
+    lines.push('========================================');
+    lines.push(`Efisiensi Aktual   : ${formatDecimal(avgEff, 2)} km/L`);
+    lines.push(`Biaya Pemborosan   : ${formatRupiah(sumBiayaBoros)}`);
+    lines.push('Stempel Terverifikasi: TELEMETRI GPS K-05');
+    lines.push('========================================');
+
+    const textToCopy = lines.join('\n');
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            showCopySuccess(button);
+        }).catch(() => {
+            fallbackCopyText(textToCopy, button);
+        });
+    } else {
+        fallbackCopyText(textToCopy, button);
+    }
+}
+
+function showCopySuccess(button) {
+    const originalText = button.innerHTML;
+    button.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        Tersalin ke Clipboard!
+    `;
+    button.style.backgroundColor = 'rgba(16, 185, 129, 0.2)';
+    button.style.borderColor = '#10b981';
+    button.style.color = '#34d399';
+
+    setTimeout(() => {
+        button.innerHTML = originalText;
+        button.style.backgroundColor = '';
+        button.style.borderColor = '';
+        button.style.color = '';
+    }, 2500);
+}
+
+function fallbackCopyText(text, button) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    try {
+        document.execCommand('copy');
+        showCopySuccess(button);
+    } catch (e) {
+        alert('Gagal menyalin otomatis. Silakan salin manual.');
+    }
+    document.body.removeChild(textarea);
+}
+
+function syncReceiptWithMap() {
+    const selectedTripIds = getSelectedReceiptTripIds();
+    if (selectedTripIds.length === 0) {
+        alert('Pilih minimal 1 trip untuk difokuskan ke peta.');
+        return;
+    }
+
+    const mapSection = document.getElementById('peta-perjalanan');
+    if (mapSection) {
+        mapSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    isInternalReceiptSyncing = true;
+    try {
+        if (selectedTripIds.length === 4) {
+            applyTripFilter('all', false);
+        } else if (selectedTripIds.length === 1) {
+            applyTripFilter(String(selectedTripIds[0]), false);
+        } else {
+            applyMultiTripMapFilter(selectedTripIds);
+        }
+    } finally {
+        setTimeout(() => {
+            isInternalReceiptSyncing = false;
+        }, 100);
+    }
+}
+
+function applyMultiTripMapFilter(selectedIds) {
+    if (!map) return;
+
+    const bounds = L.latLngBounds();
+
+    Object.keys(tripRouteLayers).forEach(id => {
+        const tripNum = parseInt(id, 10);
+        const layer = tripRouteLayers[id];
+        const color = tripColorPalette[id] || '#0ea5e9';
+
+        if (selectedIds.includes(tripNum)) {
+            if (!map.hasLayer(layer)) map.addLayer(layer);
+            layer.setStyle({ color: color, weight: 7, opacity: 1 });
+            try {
+                bounds.extend(layer.getBounds());
+            } catch (e) {}
+        } else {
+            if (map.hasLayer(layer)) map.removeLayer(layer);
+        }
+    });
+
+    Object.keys(tripMarkerLayers).forEach(id => {
+        const tripNum = parseInt(id, 10);
+        const markers = tripMarkerLayers[id];
+        if (selectedIds.includes(tripNum)) {
+            markers.forEach(m => { if (!map.hasLayer(m)) map.addLayer(m); });
+        } else {
+            markers.forEach(m => { if (map.hasLayer(m)) map.removeLayer(m); });
+        }
+    });
+
+    if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [40, 40] });
+    }
+
+    const statusText = document.getElementById('mapFilterStatus');
+    if (statusText) {
+        statusText.textContent = `Menampilkan ${selectedIds.length} Trip Terpilih (Trip ${selectedIds.join(', ')})`;
+    }
+
+    const buttons = document.querySelectorAll('.trip-filter-btn');
+    buttons.forEach(btn => btn.classList.remove('active'));
 }

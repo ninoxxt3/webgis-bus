@@ -59,6 +59,10 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18"></path><path d="M15 11h2a2 2 0 0 1 2 2v7a2 2 0 0 0 2 2 2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-1"></path><path d="M3 11h10"></path></svg>
                     <span>Analisis BBM</span>
                 </a>
+                <a href="#bon-bbm" class="nav-link">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    <span>Bon Bahan Bakar</span>
+                </a>
                 <a href="#grafik-analisis" class="nav-link">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" x2="18" y1="20" y2="10"></line><line x1="12" x2="12" y1="20" y2="4"></line><line x1="6" x2="6" y1="20" y2="14"></line></svg>
                     <span>Grafik Evaluasi</span>
@@ -480,6 +484,253 @@
                                     Rp{{ number_format($ringkasan['biaya_boros'] ?? 62472, 0, ',', '.') }}
                                 </div>
                                 <span class="mini-card-desc">Kerugian biaya akibat inefisiensi BBM yang dapat dihemat jika armada beroperasi sesuai acuan</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ============================================================ -->
+                <!-- BAGIAN: KALKULATOR & BON BAHAN BAKAR (FUEL RECEIPT)          -->
+                <!-- ============================================================ -->
+                <section id="bon-bbm">
+                    <div class="section-header">
+                        <div>
+                            <h2 class="section-title">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                Resep & Bon Pengeluaran Bahan Bakar (Fuel Receipt)
+                            </h2>
+                            <p class="section-subtitle">Filter dan terbitkan bon/struk digital konsumsi bahan bakar total maupun per trip armada K-05</p>
+                        </div>
+                        <div class="receipt-quick-badge">
+                            <span class="pulse-indicator"></span>
+                            <span id="receiptActiveStatus">Semua Trip (4 Trip Terpilih)</span>
+                        </div>
+                    </div>
+
+                    <div class="receipt-layout-grid">
+                        <!-- Panel Kontrol Filter & Parameter Bon -->
+                        <div class="receipt-control-card">
+                            <div class="control-header">
+                                <h3 style="font-size: 1.05rem; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                                    Filter Pengeluaran BBM
+                                </h3>
+                                <span style="font-size: 0.75rem; color: #94a3b8;">Kalkulasi Otomatis</span>
+                            </div>
+
+                            <!-- Tombol Cepat Filter Preset -->
+                            <div style="margin-bottom: 18px;">
+                                <label style="display:block; font-size:0.78rem; font-weight:600; color:#94a3b8; text-transform:uppercase; margin-bottom:8px; letter-spacing:0.04em;">
+                                    Pilih Cepat Trip
+                                </label>
+                                <div class="receipt-filter-btn-group">
+                                    <button type="button" class="receipt-filter-btn active" data-filter="all">
+                                        <span class="btn-dot dot-all"></span> Semua
+                                    </button>
+                                    <button type="button" class="receipt-filter-btn" data-filter="1">
+                                        <span class="btn-dot dot-trip1"></span> Trip 1
+                                    </button>
+                                    <button type="button" class="receipt-filter-btn" data-filter="2">
+                                        <span class="btn-dot dot-trip2"></span> Trip 2
+                                    </button>
+                                    <button type="button" class="receipt-filter-btn" data-filter="3">
+                                        <span class="btn-dot dot-trip3"></span> Trip 3
+                                    </button>
+                                    <button type="button" class="receipt-filter-btn" data-filter="4">
+                                        <span class="btn-dot dot-trip4"></span> Trip 4
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Pilihan Kombinasi Trip (Checklist Kustom) -->
+                            <div style="margin-bottom: 20px;">
+                                <label style="display:block; font-size:0.78rem; font-weight:600; color:#94a3b8; text-transform:uppercase; margin-bottom:8px; letter-spacing:0.04em;">
+                                    Kombinasi Kustom Trip
+                                </label>
+                                <div class="receipt-trip-checkboxes">
+                                    <label class="trip-check-label">
+                                        <input type="checkbox" class="receipt-trip-checkbox" value="1" checked>
+                                        <span class="trip-check-custom dot-trip1"></span>
+                                        <span>Trip 1 (Pagi: 33,8 km | 11,34 L)</span>
+                                    </label>
+                                    <label class="trip-check-label">
+                                        <input type="checkbox" class="receipt-trip-checkbox" value="2" checked>
+                                        <span class="trip-check-custom dot-trip2"></span>
+                                        <span>Trip 2 (Siang: 33,8 km | 12,10 L)</span>
+                                    </label>
+                                    <label class="trip-check-label">
+                                        <input type="checkbox" class="receipt-trip-checkbox" value="3" checked>
+                                        <span class="trip-check-custom dot-trip3"></span>
+                                        <span>Trip 3 (Sore: 33,7 km | 13,51 L)</span>
+                                    </label>
+                                    <label class="trip-check-label">
+                                        <input type="checkbox" class="receipt-trip-checkbox" value="4" checked>
+                                        <span class="trip-check-custom dot-trip4"></span>
+                                        <span>Trip 4 (Malam: 33,8 km | 13,16 L)</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Parameter Tarif BBM & Acuan -->
+                            <div class="receipt-params-box">
+                                <div class="receipt-param-row">
+                                    <span>Bahan Bakar:</span>
+                                    <strong>Biosolar Subsidikasi</strong>
+                                </div>
+                                <div class="receipt-param-row">
+                                    <span>Tarif Resmi:</span>
+                                    <strong>Rp6.800 / Liter</strong>
+                                </div>
+                                <div class="receipt-param-row">
+                                    <span>Acuan Efisiensi:</span>
+                                    <strong>3,3 km / Liter</strong>
+                                </div>
+                                <div class="receipt-param-row">
+                                    <span>Kode Armada:</span>
+                                    <strong style="color:var(--brand-primary);">Bus Kota K-05</strong>
+                                </div>
+                            </div>
+
+                            <!-- Tombol Aksi Cetak & Salin -->
+                            <div class="receipt-action-buttons">
+                                <button type="button" class="btn-receipt-action btn-print" id="btnPrintReceipt">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect width="12" height="8" x="6" y="14"></rect></svg>
+                                    Cetak Bon / Unduh PDF
+                                </button>
+                                <button type="button" class="btn-receipt-action btn-copy" id="btnCopyReceipt">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
+                                    Salin Teks Bon
+                                </button>
+                                <button type="button" class="btn-receipt-action btn-sync" id="btnSyncMap">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>
+                                    Fokuskan ke Peta
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Kertas Struk / Bon Fisik Digital -->
+                        <div class="receipt-paper-wrapper">
+                            <div class="receipt-paper" id="receiptPaper">
+                                <!-- Header Struk / Bon -->
+                                <div class="receipt-header">
+                                    <div class="receipt-logo-icon">🚌</div>
+                                    <div class="receipt-title">TRANSIT GIS OPERATIONS</div>
+                                    <div class="receipt-subtitle">DEPO ARMADA BUS KOTA K-05</div>
+                                    <div class="receipt-address">Koridor Tangerang – Jakarta | DKI Jakarta</div>
+                                    <div class="receipt-receipt-type">*** BUKTI PENGELUARAN BAHAN BAKAR ***</div>
+                                </div>
+
+                                <div class="receipt-dashed-line"></div>
+
+                                <!-- Meta Info Struk -->
+                                <div class="receipt-meta-grid">
+                                    <div class="receipt-meta-item">
+                                        <span class="meta-k">NO. BON</span>
+                                        <span class="meta-v" id="receiptDocNumber">BON-K05-20250303-ALL</span>
+                                    </div>
+                                    <div class="receipt-meta-item">
+                                        <span class="meta-k">TANGGAL</span>
+                                        <span class="meta-v">Senin, 03-03-2025</span>
+                                    </div>
+                                    <div class="receipt-meta-item">
+                                        <span class="meta-k">ARMADA</span>
+                                        <span class="meta-v">Bus Kota (K-05)</span>
+                                    </div>
+                                    <div class="receipt-meta-item">
+                                        <span class="meta-k">BBM</span>
+                                        <span class="meta-v">Biosolar @ Rp6.800/L</span>
+                                    </div>
+                                    <div class="receipt-meta-item" style="grid-column: span 2;">
+                                        <span class="meta-k">PETUGAS/CAAS</span>
+                                        <span class="meta-v">{{ $studentName }} ({{ $caasCode }})</span>
+                                    </div>
+                                </div>
+
+                                <div class="receipt-dashed-line"></div>
+
+                                <!-- Tabel Item Perjalanan / Rincian Liter -->
+                                <div class="receipt-table-header">
+                                    <span>RINCIAN TRIP / RUTE</span>
+                                    <span style="text-align:right;">LITER & BIAYA</span>
+                                </div>
+                                <div class="receipt-items-container" id="receiptItemsList">
+                                    <!-- Dynamic items will be injected by JavaScript -->
+                                </div>
+
+                                <div class="receipt-dashed-line"></div>
+
+                                <!-- Ringkasan Kalkulasi Akumulasi Bon -->
+                                <div class="receipt-summary-block">
+                                    <div class="receipt-calc-row">
+                                        <span>Total Jarak Tempuh:</span>
+                                        <strong id="receiptTotalDistance">135,00 km</strong>
+                                    </div>
+                                    <div class="receipt-calc-row">
+                                        <span>BBM Efektif (Jalan):</span>
+                                        <strong id="receiptRoadFuel">49,70 L</strong>
+                                    </div>
+                                    <div class="receipt-calc-row">
+                                        <span>BBM Terbuang (Idle Mesin):</span>
+                                        <strong id="receiptIdleFuel">0,40 L</strong>
+                                    </div>
+                                    <div class="receipt-calc-row" style="color: #f87171;">
+                                        <span>Pemborosan BBM vs Acuan:</span>
+                                        <strong id="receiptWastedFuel">9,20 L</strong>
+                                    </div>
+                                </div>
+
+                                <div class="receipt-double-line"></div>
+
+                                <!-- TOTAL UTAMA (GRAND TOTAL) -->
+                                <div class="receipt-grand-total">
+                                    <div class="grand-total-row">
+                                        <span class="grand-total-label">TOTAL BBM DIMAKAN</span>
+                                        <span class="grand-total-val" id="receiptTotalLiters">50,10 L</span>
+                                    </div>
+                                    <div class="grand-total-row">
+                                        <span class="grand-total-label">TARIF PER LITER</span>
+                                        <span class="grand-total-sub">Rp 6.800</span>
+                                    </div>
+                                    <div class="grand-total-row highlight">
+                                        <span class="grand-total-label" style="font-size:1.05rem;">TOTAL BIAYA BBM</span>
+                                        <span class="grand-total-amount" id="receiptTotalCost">Rp 340.740</span>
+                                    </div>
+                                </div>
+
+                                <div class="receipt-double-line"></div>
+
+                                <!-- Evaluasi Efisiensi & Loss -->
+                                <div class="receipt-eval-box">
+                                    <div class="eval-row">
+                                        <span>Efisiensi Aktual Terpilih:</span>
+                                        <strong id="receiptAvgEfficiency" style="color:#38bdf8;">2,69 km/L</strong>
+                                    </div>
+                                    <div class="eval-row">
+                                        <span>Target Acuan Standar:</span>
+                                        <strong>3,30 km/L</strong>
+                                    </div>
+                                    <div class="eval-row">
+                                        <span>Biaya Akibat Pemborosan:</span>
+                                        <strong id="receiptWasteCost" style="color:#f87171;">Rp 62.472 (-18,5%)</strong>
+                                    </div>
+                                </div>
+
+                                <!-- Stempel & Barcode -->
+                                <div class="receipt-footer-stamp">
+                                    <div class="receipt-stamp-badge">
+                                        <span>TERVERIFIKASI</span>
+                                        <small>TELEMETRI GPS K-05</small>
+                                    </div>
+                                    <div class="receipt-barcode-box">
+                                        <div class="receipt-barcode-lines"></div>
+                                        <div class="receipt-barcode-text" id="receiptBarcodeText">*K05-20250303-340740*</div>
+                                    </div>
+                                </div>
+
+                                <div class="receipt-closing-note">
+                                    Terima kasih atas operasional armada hari ini.<br>
+                                    Simpan bon ini sebagai bukti audit pertanggungjawaban BBM.
+                                </div>
                             </div>
                         </div>
                     </div>
