@@ -37,7 +37,8 @@ Aplikasi dirancang dengan tata letak horizontal modern, sidebar navigasi respons
 1. **Visualisasi Spasial**: Memetakan rute aktual dan titik awal/akhir dari 4 trip perjalanan bus K-05 secara interaktif.
 2. **Evaluasi Efisiensi Energi**: Membandingkan efisiensi konsumsi BBM aktual dengan nilai acuan standar industri (3,3 km/liter).
 3. **Analisis Inefisiensi & Kerugian**: Mengidentifikasi besaran BBM terbuang (*wasted fuel*) dan kerugian finansial akibat kondisi operasional dan kemacetan lalu lintas.
-4. **Penyediaan Layanan Data Terbuka**: Menyediakan RESTful API berbasis Laravel untuk konsumsi data spasial GeoJSON dan tabular.
+4. **Penerbitan Bon & Resep BBM**: Menyediakan kalkulator dan bukti pengeluaran bahan bakar digital (*Fuel Receipt*) yang fleksibel per trip maupun akumulasi seluruh trip dengan total liter dan total biaya riil.
+5. **Penyediaan Layanan Data Terbuka**: Menyediakan RESTful API berbasis Laravel untuk konsumsi data spasial GeoJSON dan tabular.
 
 ---
 
@@ -78,9 +79,9 @@ webgis-bus/
 │       └── GpsPreprocessingService.php  # Service Validasi, Sorting, dan Audit GPS
 ├── public/
 │   ├── css/
-│   │   └── transit-dashboard.css        # Desain Transit Operations Dashboard
+│   │   └── transit-dashboard.css        # Desain Transit Operations Dashboard & Bon BBM
 │   ├── js/
-│   │   └── dashboard.js                 # Integrasi Leaflet, Filter, dan Chart.js
+│   │   └── dashboard.js                 # Integrasi Leaflet, Filter, Bon BBM, dan Chart.js
 │   └── data/
 │       ├── gps_mentah.csv               # Dataset GPS Mentah Asli (634 baris)
 │       ├── ringkasan.json               # Parameter Operasional Asli
@@ -90,12 +91,12 @@ webgis-bus/
 │       └── gps_preprocessed.json        # Output Audit & Agregasi Preprocessing
 ├── resources/
 │   └── views/
-│       └── dashboard.blade.php          # View Utama Dashboard WebGIS
+│       └── dashboard.blade.php          # View Utama Dashboard WebGIS & Modul Bon BBM
 ├── routes/
 │   └── web.php                          # Rute Web dan REST API
 ├── tests/
 │   └── Feature/
-│       └── WebGISTest.php               # Feature Tests PHPUnit (6 Pengujian)
+│       └── WebGISTest.php               # Feature Tests PHPUnit (11 Pengujian Lulus)
 └── README.md
 ```
 
@@ -114,7 +115,7 @@ Proses preprocessing dilakukan terhadap `gps_mentah.csv` melalui `App\Services\G
 ---
 
 ## 10. Fitur WebGIS
-1. **Sidebar Navigasi Transit GIS**: Navigasi cepat dengan status pulse armada real-time dan dukungan responsive menu pada layar tablet/mobile.
+1. **Sidebar Navigasi Transit GIS**: Navigasi cepat dengan tautan langsung antar-bagian (termasuk menu baru *Bon Bahan Bakar*), status pulse armada real-time, dan dukungan menu responsif pada tablet/ponsel.
 2. **Header Telemetri & Identitas**: Menampilkan nomor armada (K-05), rute (Tangerang – Jakarta), Nama Mahasiswa, dan Kode CaAs.
 3. **Kartu Status Operasional Ringkas**: Ringkasan 4 Trip, 135 km, 50,1 Liter Biosolar, Total Biaya Rp340.740, dan Efisiensi Aktual.
 4. **Peta Leaflet Ukuran Besar**:
@@ -126,12 +127,20 @@ Proses preprocessing dilakukan terhadap `gps_mentah.csv` melalui `App\Services\G
    - Legend rute dan terminal.
 5. **Panel Trip Performance**: 4 kartu ringkasan trip yang memuat data aktual langsung dari `rute.geojson`.
 6. **Analisis BBM Komparatif**: Visualisasi perbandingan efisiensi acuan (3,3 km/L) vs aktual (2,69 km/L) beserta penjelasan naratif penyebab inefisiensi.
-7. **3 Grafik Interaktif Chart.js**:
+7. **Resep & Bon Pengeluaran Bahan Bakar (Fuel Receipt)**:
+   - **Filter Cepat & Kustom**: Pilihan preset tombol (`Semua`, `Trip 1`, `Trip 2`, `Trip 3`, `Trip 4`) serta checklist kombinasi kustom multi-trip (misalnya hanya Trip 1 & 3 untuk melihat akumulasi rute arah Tangerang → Jakarta).
+   - **Kalkulasi Akumulatif Real-Time**: Perhitungan otomatis total liter bahan bakar yang dikonsumsi, total biaya BBM (tarif Biosolar Rp6.800/liter), BBM jalan efektif vs BBM terbuang saat idle, volume BBM boros di atas acuan standar (3,3 km/L), dan persentase kerugian biaya.
+   - **Struk Digital Realistis (Thermal Receipt Paper)**: Format kertas struk kasir fisik digital dengan nomor bon dinamis (`BON-K05-20250303-ALL`, `BON-K05-20250303-T1`, `BON-K05-20250303-T1-T3`, dll.), identitas resmi petugas (`Flarino Marco Cristvan Zakaria - 2675`), stempel terverifikasi telemetri GPS, dan barcode invoice.
+   - **3 Tombol Aksi Operasional**:
+     - 🖨️ **Cetak Bon / Unduh PDF**: Didukung aturan CSS `@media print` khusus yang menyembunyikan dashboard dan mencetak kertas bon kasir secara bersih dan presisi.
+     - 📋 **Salin Teks Bon**: Menyalin seluruh ringkasan bon dalam format teks rapi ke clipboard untuk pelaporan pesan singkat / chat.
+     - 🗺️ **Fokuskan ke Peta**: Mensinkronisasikan filter dan otomatis menyorot (zoom & filter) rute perjalanan terpilih langsung pada peta Leaflet.
+8. **3 Grafik Interaktif Chart.js**:
    - Grafik 1: Efisiensi km/liter per trip dengan garis target acuan (3,3 km/L).
    - Grafik 2: Komposisi konsumsi BBM (Jalan, Idle, Boros) per trip.
    - Grafik 3: Biaya BBM riil vs Biaya akibat pemborosan.
-8. **Tabel Data Responsif**: Tabel log perjalanan 12 kolom dengan scrolling horizontal halus.
-9. **Panel Audit Preprocessing & REST API**: Menampilkan ringkasan audit data serta tautan langsung ke endpoint API.
+9. **Tabel Data Responsif**: Tabel log perjalanan 12 kolom dengan scrolling horizontal halus.
+10. **Panel Audit Preprocessing & REST API**: Menampilkan ringkasan audit data serta tautan langsung ke endpoint API.
 
 ---
 
